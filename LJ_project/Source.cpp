@@ -5,11 +5,18 @@
 #include "LJ_fluid_EOS.h"
 #include "LJ_solid_EOS.h"
 
+// calculations is an array which contains Common Thermodynamic Properties (reduced, dimensionless) in following order: 
+// Density[0], Temperature[1], Phase[2](0 - VL, 1 - Fluid, 2 - LS, 3 - S(FCC), 4 - S(HCP){L -liquid, S - solid, V - vapour}), Pressure[3], Internal Energy[4], 
+// Enthalpy[5], Isochoric Heat Capacity[6], Isobaric  Heat Capacity[7], dp/d(rho)  at T=const[8], dp/dT  at rho=const[9] 
+// Helmholtz Free Energy[10] or its Derivatives[11-16] (A00, A10, A01, A20, A11, A02)
+// The mixed partial derivative Axy=d^(x+y)(F/(NkBT))/d(1/T)^x/d(rho)^y * (1/T)^x * (rho)^y,
+// where F is the Helmholtz free energy [J] (extensive), N is the number of particles,
+// kB is the Boltzmann constant [J/K], T is the temperature [K], and rho is the density [mol/m3].
 
 using namespace std;
 
-int S_EOS(string type_of_lattice, double T, double Rho);
-int L_G_EOS(double Rho, double T);
+//S_EOS(string type_of_lattice, double T, double Rho);
+//L_G_EOS(double Rho, double T);
 
 int argmin(vector<float>& data, float rho)
 {
@@ -210,9 +217,8 @@ string check_value
 }
 
 
-int main()
+vector<double> function(float T, float Rho)
 {
-
     FILE* file = fopen("z:\\data_dan\\Binodal_LJ_EOS_Vrabec2016.dat", "r");
     FILE* file1 = fopen("z:\\data_dan\\LJSolidLiqSadus2010.dat", "r");
     FILE* file2 = fopen("z:\\data_dan\\LJ_HCP_FCC_AdidharmaTan2016.dat", "r");
@@ -223,43 +229,37 @@ int main()
     vector<float> 	data2_ro_HCP, data2_T, data2_ro_FCC;
     vector<float>   data3_ro_gas, data3_T, data3_ro_solid;
 
-    float T, rho, P, muT, ro_gas, ro_solid, dmu, ro_liq, ro_HCP, ro_FCC;
+    float rho, t, P, muT, ro_gas, ro_solid, dmu, ro_liq, ro_HCP, ro_FCC;
     char  solid_type[10];
 
-    while (fscanf(file, "%f%f%f%f", &T, &P, &ro_gas, &ro_liq))
+    while (fscanf(file, "%f%f%f%f", &t, &P, &ro_gas, &ro_liq))
     {
-        data_T.push_back(T);
+        data_T.push_back(t);
         data_ro_gas.push_back(ro_gas);
         data_ro_liq.push_back(ro_liq);
     }
-    while (fscanf(file1, "%f%f%f%f", &T, &P, &ro_liq, &ro_solid))
+    while (fscanf(file1, "%f%f%f%f", &t, &P, &ro_liq, &ro_solid))
     {
         data1_ro_liq.push_back(ro_liq);
-        data1_T.push_back(T);
+        data1_T.push_back(t);
         data1_ro_solid.push_back(ro_solid);
     }
-    while (fscanf(file2, "%f%f%f%f%f%f", &T, &P, &muT, &ro_HCP, &ro_FCC, &dmu))
+    while (fscanf(file2, "%f%f%f%f%f%f", &t, &P, &muT, &ro_HCP, &ro_FCC, &dmu))
     {
         data2_ro_HCP.push_back(ro_HCP);
-        data2_T.push_back(T);
+        data2_T.push_back(t);
         data2_ro_FCC.push_back(ro_FCC);
     }
-    while (fscanf(file3, "%f%f%f%f%f%f%s", &T, &P, &muT, &ro_gas, &ro_solid, &dmu, solid_type))
+    while (fscanf(file3, "%f%f%f%f%f%f%s", &t, &P, &muT, &ro_gas, &ro_solid, &dmu, solid_type))
     {
         data3_ro_gas.push_back(ro_gas);
-        data3_T.push_back(T);
+        data3_T.push_back(t);
         data3_ro_solid.push_back(ro_solid);
     }
 
-    float Rho;
     string tmp;
-
-    cout << endl << "Specify a state point." << endl;
-    cout << endl << "Density (reduced): ";
-    cin >> Rho;
-    cout << endl << "Temperature (reduced): ";
-    cin >> T;
-
+    vector<double> calculations(20, 0);
+    
     tmp = check_value
     (
         Rho, T,
@@ -268,33 +268,66 @@ int main()
         data2_ro_HCP, data2_T, data2_ro_FCC,
         data3_ro_gas, data3_T, data3_ro_solid
     );
+    cout << tmp << endl;
+    //cout << T << endl;
     if (tmp != "NOT USING")
     {
         if (tmp == "L")
         {
-            cout << endl << "Current point is located in the fluid phase." << endl;
-            L_G_EOS(Rho, T);
+            //cout << endl << "Current point is located in the fluid phase." << endl;
+            calculations = L_G_EOS(Rho, T);
         }
         if (tmp == "FCC")
         {
-            cout << endl << "Current point is located in the solid phase with FCC lattice type." << endl;
-            S_EOS("FCC", T, Rho);
+            //cout << endl << "Current point is located in the solid phase with FCC lattice type." << endl;
+            calculations = S_EOS("FCC", T, Rho);
         }
         if (tmp == "HCP")
         {
-            cout << endl << "Current point is located in the solid phase with HCP lattice type." << endl;
-            S_EOS("HCP", T, Rho);
+            //cout << endl << "Current point is located in the solid phase with HCP lattice type." << endl;
+            calculations = S_EOS("HCP", T, Rho);
+        }
+        if (tmp == "LS")
+        {
+            calculations[0] = Rho;
+            calculations[1] = T;
+            calculations[2] = 2;
         }
     }
     else
     {
-        cout << endl << "Current point is located in NOT USING region of the equation of state ." << endl;
+        if (Rho <= 0.845999 and T >= 0.692)
+        {
+            calculations[0] = Rho;
+            calculations[1] = T;
+            calculations[2] = 0;
+        }
+        else
+        {
+            calculations[0] = Rho;
+            calculations[1] = T;
+            calculations[2] = 2;
+        }
     }
 
     fclose(file);
     fclose(file1);
     fclose(file2);
     fclose(file3);
-    return 0;
+
+    return calculations;
 }
 
+int main()
+{
+    for (float rho = 0; rho < 1.5; rho+= 0.25) 
+    {
+        for (float T = 0; T < 3; T += 0.25)
+        {
+            vector<double> a = function(T, rho);
+            cout << " " << a[2] << " (" << rho<< ", " << T << ")" << endl;
+        }
+        //cout << endl;
+    }
+    return 0;
+}

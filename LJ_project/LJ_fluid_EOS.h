@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <vector>
 using namespace std;
 
 double PolyTerm(double tau, double delta, double n, double t, double d, int ordertau, int orderdelta)
@@ -46,7 +47,7 @@ double ReturnTermValue(int i, double tau, double delta, int ordertau, int orderd
     if (fabs(BasisFunPar[i][0] - 3.0) < 0.01) return GaussTerm(tau, delta, BasisFunPar[i][1], BasisFunPar[i][2], BasisFunPar[i][3], BasisFunPar[i][5], BasisFunPar[i][6], BasisFunPar[i][7], BasisFunPar[i][8], ordertau, orderdelta);
 }
 
-int L_G_EOS(double Rho, double T)
+vector<double> L_G_EOS(double Rho, double T)
 {
     // Critical temperature and density:
     double Tc = 1.32, Rhoc = 0.31;
@@ -295,6 +296,9 @@ int L_G_EOS(double Rho, double T)
 
     //common thermodynamic properties
     double p, ures, hres, cvres, cpres, dpdrho, dpdt;
+    vector<double> CTP(20, 0);
+    //double* CTP = new double[20];
+    //for (int i = 0; i < 20; i++) CTP[i] = 0;
 
     ures = A10res * T;
     hres = (A01res + A10res) * T;
@@ -303,7 +307,27 @@ int L_G_EOS(double Rho, double T)
     dpdt = Rho * (1.0 + A01res - A11res);
     cvres = -A20res;
     cpres = -A20res + (1.0 + A01res - A11res) * (1.0 + A01res - A11res) / (1.0 + 2.0 * A01res + A02res) - 1.0;
+    
+    CTP[0] = Rho;
+    CTP[1] = T;
+    CTP[2] = 1;
+    CTP[3] = p;
+    CTP[4] = ures;
+    CTP[5] = hres;
+    CTP[6] = cvres;
+    CTP[7] = cpres;
+    CTP[8] = dpdrho;
+    CTP[9] = dpdt;
 
+    CTP[11] = A00res;
+    CTP[12] = A10res;
+    CTP[13] = A01res;
+    CTP[14] = A20res;
+    CTP[15] = A11res;
+    CTP[16] = A02res;
+
+
+    /*
     cout << setprecision(15) << endl << "Common Thermodynamic Properties:" << endl;
 
     cout << endl << "Pressure (total):                   " << p << " (reduced, dimensionless)";
@@ -327,10 +351,11 @@ int L_G_EOS(double Rho, double T)
     cout << " where F is the Helmholtz free energy [J] (extensive), N is the number of particles,";
     cout << " kB is the Boltzmann constant [J/K], T is the temperature [K], and rho is the density [mol/m3].";
     cout << endl << "Note that Axy is dimensionless, independent from the choice of units (Lennard-Jones or SI)." << endl;
+    */
 
     for (int i = 0; i < NTerms; i++) delete[] BasisFunPar[i];
     delete[] BasisFunPar;
 
-    return 0;
+    return CTP;
 }
 

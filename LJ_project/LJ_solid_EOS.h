@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <vector>
 using namespace std;
 
 double polysumm(string required_value, string type_of_lattice, double T, double Rho, double** BasisFunPar_FCC, double** BasisFunPar_HCP, int NTerms, int NParameters)
@@ -128,7 +129,7 @@ double constant_of_integration(string required_value, string type_of_lattice, do
     return result;
 }
 
-int S_EOS(string type_of_lattice, double T, double Rho)
+vector<double> S_EOS(string type_of_lattice, double T, double Rho)
 {
     //Matrices  that contains the parameters of the correlation
     //Matrices BasisFunPar
@@ -211,31 +212,49 @@ int S_EOS(string type_of_lattice, double T, double Rho)
     double c4_HCP = 6.06614688455;
 
     double U, Z, A;
+    vector<double> CTP(20, 0);
+    //double* CTP = new double[20];
+    //for (int i = 0; i < 20; i++) CTP[i] = 0;
+    
 
     if (type_of_lattice == "FCC")
     {
         U = 1.5 + (c2_FCC * pow(Rho, 2) + c4_FCC * pow(Rho, 4)) / T - polysumm("U", type_of_lattice, T, Rho, BasisFunPar_FCC, BasisFunPar_HCP, NTerms, NParameters);
         Z = T * Rho * (1 + (2 * c2_FCC * pow(Rho, 2) + 4 * c4_FCC * pow(Rho, 4)) / T + polysumm("Z", type_of_lattice, T, Rho, BasisFunPar_FCC, BasisFunPar_HCP, NTerms, NParameters) + Rho * constant_of_integration("derivative", type_of_lattice, Rho, b_FCC, b_HCP, c0_FCC, c0_HCP, NTerms));
         A = -1.5 * log(T) + (c2_FCC * pow(Rho, 2) + c4_FCC * pow(Rho, 4)) / T + polysumm("A", type_of_lattice, T, Rho, BasisFunPar_FCC, BasisFunPar_HCP, NTerms, NParameters) + constant_of_integration("full", type_of_lattice, Rho, b_FCC, b_HCP, c0_FCC, c0_HCP, NTerms);
+        CTP[0] = Rho;
+        CTP[1] = T;
+        CTP[2] = 3;
+        CTP[3] = Z;
+        CTP[4] = U;
+        CTP[9] = A;
     }
     if (type_of_lattice == "HCP")
     {
         U = 1.5 + (c2_HCP * pow(Rho, 2) + c4_HCP * pow(Rho, 4)) / T - polysumm("U", type_of_lattice, T, Rho, BasisFunPar_FCC, BasisFunPar_HCP, NTerms, NParameters);
         Z = T * Rho * (1 + (2 * c2_HCP * pow(Rho, 2) + 4 * c4_HCP * pow(Rho, 4)) / T + polysumm("Z", type_of_lattice, T, Rho, BasisFunPar_FCC, BasisFunPar_HCP, NTerms, NParameters) + Rho * constant_of_integration("derivative", type_of_lattice, Rho, b_FCC, b_HCP, c0_FCC, c0_HCP, NTerms));
         A = -1.5 * log(T) + (c2_HCP * pow(Rho, 2) + c4_HCP * pow(Rho, 4)) / T + polysumm("A", type_of_lattice, T, Rho, BasisFunPar_FCC, BasisFunPar_HCP, NTerms, NParameters) + constant_of_integration("Full", type_of_lattice, Rho, b_FCC, b_HCP, c0_FCC, c0_HCP, NTerms);
+        CTP[0] = Rho;
+        CTP[1] = T;
+        CTP[2] = 4;
+        CTP[3] = Z;
+        CTP[4] = U;
+        CTP[9] = A;
     }
+    
+    /*
     cout << setprecision(15) << endl << "Common Thermodynamic Properties:" << endl;
 
     cout << endl << "Pressure (total):                   " << Z << " (reduced, dimensionless)";
     cout << endl << "Internal Energy (residual):         " << U << " (reduced, dimensionless)";
     cout << endl << "Helmholtz energy(residual):         " << A << " (reduced, dimensionless)";
-
+    */
 
     for (int i = 0; i < NTerms; i++) delete[] BasisFunPar_FCC[i];
     for (int i = 0; i < NTerms; i++) delete[] BasisFunPar_HCP[i];
     delete[] BasisFunPar_FCC;
     delete[] BasisFunPar_HCP;
 
-    return 0;
+    return CTP;
 }
 
